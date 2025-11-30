@@ -51,7 +51,7 @@ export default function Home() {
 
   return (
     <div>
-      <main className="max-w-4xl mx-auto p-8 md:p-20">
+      <main className="max-w-4xl mx-auto p-8 md:p-20 font-minecraft">
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <Field>
             <FieldLabel>Material List</FieldLabel>
