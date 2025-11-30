@@ -1,14 +1,14 @@
 "use client";
 
 import * as React from "react";
-import { cn } from "@/lib/utils";
 import { getBlockImageUrl } from "@/lib/block-image-map";
 import Image from "next/image";
 import { Package } from "lucide-react";
 import { Progress } from "./ui/progress";
+import type { Material } from "@/app/page";
 
 interface MaterialGridProps {
-  materials: string[];
+  materials: Material[];
   onLoadingProgress?: (progress: number, isComplete: boolean) => void;
 }
 
@@ -21,23 +21,53 @@ function formatMaterialName(name: string): string {
     .join(" ");
 }
 
-function MaterialCard({ material }: { material: string }) {
-  const formattedName = formatMaterialName(material);
-  const imageUrl = getBlockImageUrl(material);
+function MaterialCard({ material }: { material: Material }) {
+  const formattedName = formatMaterialName(material.name);
+  const imageUrl = getBlockImageUrl(material.name);
+  const [isHovered, setIsHovered] = React.useState(false);
+  const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
+  const tooltipRef = React.useRef<HTMLDivElement>(null);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    setMousePosition({ x: e.clientX, y: e.clientY });
+  };
+
+  React.useEffect(() => {
+    if (!isHovered || !tooltipRef.current) return;
+
+    const tooltip = tooltipRef.current;
+    const tooltipRect = tooltip.getBoundingClientRect();
+    const offset = 10;
+    let x = mousePosition.x + offset;
+    let y = mousePosition.y + offset;
+
+    if (x + tooltipRect.width > window.innerWidth) {
+      x = mousePosition.x - tooltipRect.width - offset;
+    }
+
+    if (y + tooltipRect.height > window.innerHeight) {
+      y = mousePosition.y - tooltipRect.height - offset;
+    }
+
+    if (x < 0) {
+      x = offset;
+    }
+
+    if (y < 0) {
+      y = offset;
+    }
+
+    tooltip.style.left = `${x}px`;
+    tooltip.style.top = `${y}px`;
+  }, [mousePosition, isHovered]);
 
   return (
-    <div
-      className={cn(
-        "group relative flex flex-col items-center justify-center",
-        "rounded-lg border border-border bg-card p-4",
-        "transition-all hover:border-primary hover:shadow-md",
-        "min-h-[120px]"
-      )}
-    >
+    <>
       <div
-        className={cn(
-          "mb-2 flex h-16 w-16 items-center justify-center rounded-lg"
-        )}
+        className="relative flex items-center justify-center w-20 h-20 p-2"
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onMouseMove={handleMouseMove}
       >
         {imageUrl ? (
           <Image
@@ -48,15 +78,21 @@ function MaterialCard({ material }: { material: string }) {
             className="h-full w-full object-contain"
           />
         ) : (
-          <div className="flex items-center justify-center">
-            <Package className="h-16 w-16 text-muted-foreground" />
-          </div>
+          <Package className="h-16 w-16 text-muted-foreground" />
         )}
+        <span className="text-xl absolute bottom-2 right-2 font-minecraft">
+          {material.quantity}
+        </span>
       </div>
-      <h3 className="text-center text-sm font-medium leading-tight">
-        {formattedName}
-      </h3>
-    </div>
+      {isHovered && (
+        <div
+          ref={tooltipRef}
+          className="fixed pointer-events-none z-50 px-2 py-1 bg-popover text-popover-foreground text-sm rounded-md shadow-lg border border-border whitespace-nowrap"
+        >
+          {formattedName}
+        </div>
+      )}
+    </>
   );
 }
 
@@ -85,7 +121,7 @@ export function MaterialGrid({
     }
 
     const imageUrls = materials
-      .map((material) => getBlockImageUrl(material))
+      .map((material) => getBlockImageUrl(material.name))
       .filter((url): url is string => url !== undefined);
 
     if (imageUrls.length === 0) {
@@ -123,12 +159,17 @@ export function MaterialGrid({
     return null;
   }
 
-  if (!imagesLoaded) {
-    return (
-      <div className="mt-8">
-        <h2 className="mb-4 text-2xl font-semibold">
-          Your Material List ({materials.length} items)
-        </h2>
+  const totalQuantity = materials.reduce(
+    (sum, material) => sum + material.quantity,
+    0
+  );
+
+  return (
+    <div className="mt-8">
+      <h2 className="mb-4 text-2xl font-semibold">
+        Your Material List ({materials.length} types, {totalQuantity} total)
+      </h2>
+      {!imagesLoaded ? (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="mb-4 text-lg text-muted-foreground">
             Loading images... {loadingProgress}%
@@ -137,20 +178,13 @@ export function MaterialGrid({
             <Progress value={loadingProgress} />
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="mt-8">
-      <h2 className="mb-4 text-2xl font-semibold">
-        Your Material List ({materials.length} items)
-      </h2>
-      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
-        {materials.map((material, index) => (
-          <MaterialCard key={`${material}-${index}`} material={material} />
-        ))}
-      </div>
+      ) : (
+        <div className="flex flex-wrap">
+          {materials.map((material, index) => (
+            <MaterialCard key={`${material}-${index}`} material={material} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

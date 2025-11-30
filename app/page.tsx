@@ -13,16 +13,32 @@ import { MaterialGrid } from "@/components/MaterialGrid";
 import { Loader2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
-function parseMaterialList(materialList: string): string[] {
+export interface Material {
+  name: string;
+  quantity: number;
+}
+
+function parseMaterialList(materialList: string): Material[] {
   return materialList
     .split(/[\n,]+/)
     .map((item) => item.trim())
-    .filter((item) => item.length > 0);
+    .filter((item) => item.length > 0)
+    .map((item) => {
+      const quantityMatch = item.match(/\d+/);
+      const quantity = quantityMatch ? parseInt(quantityMatch[0], 10) : 1;
+
+      const name = item.replace(/\d+/g, "").replace(/[x*:]/g, "").trim();
+
+      return {
+        name: name || item,
+        quantity,
+      };
+    });
 }
 
 export default function Home() {
   const [materialList, setMaterialList] = useState("");
-  const [materials, setMaterials] = useState<string[]>([]);
+  const [materials, setMaterials] = useState<Material[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
