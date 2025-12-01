@@ -3,9 +3,27 @@
 import * as React from "react";
 import { getBlockImageUrl } from "@/lib/block-image-map";
 import Image from "next/image";
-import { Package } from "lucide-react";
-import { Button } from "./ui/button";
+import { Package, Save, Share2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { createBuildUrl } from "@/lib/build-encoding";
+import { useRouter } from "next/navigation";
 import type { Material } from "@/app/page";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Field,
+  FieldLabel,
+  FieldContent,
+  FieldError,
+} from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { db } from "@/lib/db";
 
 function formatMaterialName(name: string): string {
   return name
@@ -116,8 +134,20 @@ function MaterialCard({
   );
 }
 
-export function MaterialGrid({ materials }: { materials: Material[] }) {
+export function MaterialGrid({
+  materials,
+  handleShare,
+  shareSuccess,
+}: {
+  materials: Material[];
+  handleShare: () => void;
+  shareSuccess: boolean;
+}) {
   const [showStacks, setShowStacks] = React.useState(false);
+  const [buildName, setBuildName] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
+  const [showSaveDialog, setShowSaveDialog] = React.useState(false);
+  const router = useRouter();
 
   if (!materials || materials.length === 0) {
     return null;
@@ -128,19 +158,60 @@ export function MaterialGrid({ materials }: { materials: Material[] }) {
     0
   );
 
+  const handleSaveBuild = async () => {
+    if (!buildName.trim()) {
+      setError("Build name cannot be empty");
+      return;
+    }
+
+    if (materials.length === 0) {
+      setError("No materials to save");
+      return;
+    }
+
+    try {
+      const build = {
+        name: buildName.trim(),
+        materials,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      // Save to Dexie for local storage
+      await db.builds.add(build);
+
+      // Navigate to URL-encoded build (shareable, SSR-compatible)
+      const url = createBuildUrl(build);
+      setBuildName("");
+      setShowSaveDialog(false);
+      setError(null);
+
+      router.push(url);
+    } catch (err) {
+      setError("Failed to save build");
+      console.error(err);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">
           Your Material List ({materials.length} types, {totalQuantity} total)
         </h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowStacks(!showStacks)}
-        >
-          {showStacks ? "Show Count" : "Show Stacks"}
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm" onClick={handleShare}>
+            <Share2 className="h-4 w-4 mr-2" />
+            {shareSuccess ? "Copied!" : "Share"}
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowStacks(!showStacks)}
+          >
+            {showStacks ? "Show Count" : "Show Stacks"}
+          </Button>
+        </div>
       </div>
       <div className="flex flex-wrap">
         {materials.map((material, index) => (
@@ -151,6 +222,61 @@ export function MaterialGrid({ materials }: { materials: Material[] }) {
           />
         ))}
       </div>
+
+      <Button
+        type="button"
+        variant="ghost"
+        className="mt-4 self-end"
+        onClick={() => setShowSaveDialog(true)}
+      >
+        Save Build
+        <Save />
+      </Button>
+
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="font-minecraft">
+          <DialogHeader>
+            <DialogTitle>Save Build</DialogTitle>
+            <DialogDescription>
+              Enter a name for your build to save it for later.
+            </DialogDescription>
+          </DialogHeader>
+          <Field>
+            <FieldLabel>Build Name</FieldLabel>
+            <FieldContent>
+              <Input
+                type="text"
+                value={buildName}
+                onChange={(e) => setBuildName(e.target.value)}
+                placeholder="My Awesome Build"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSaveBuild();
+                  }
+                }}
+                autoFocus
+              />
+              {error && <FieldError>{error}</FieldError>}
+            </FieldContent>
+          </Field>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowSaveDialog(false);
+                setBuildName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSaveBuild}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

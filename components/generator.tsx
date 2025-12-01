@@ -4,7 +4,7 @@ import { useState } from "react";
 import { MaterialGrid } from "@/components/material-grid";
 import { GeneratorForm } from "./generator-form";
 import { Button } from "./ui/button";
-import { Save } from "lucide-react";
+import { Save, Share2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -16,6 +16,7 @@ import {
 import { Field, FieldLabel, FieldContent, FieldError } from "./ui/field";
 import { Input } from "./ui/input";
 import { db } from "@/lib/db";
+import { createBuildUrl } from "@/lib/build-encoding";
 import { useRouter } from "next/navigation";
 
 export interface Material {
@@ -30,41 +31,34 @@ export function Generator() {
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
 
-  const handleSaveBuild = async () => {
-    if (!buildName.trim()) {
-      setError("Build name cannot be empty");
-      return;
-    }
+  const [shareSuccess, setShareSuccess] = useState(false);
 
-    if (materials.length === 0) {
-      setError("No materials to save");
-      return;
-    }
+  const handleShare = () => {
+    const build = {
+      name: `Material List - ${new Date().toLocaleDateString()}`,
+      materials,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    const url = createBuildUrl(build);
+    const fullUrl = window.location.origin + url;
 
-    try {
-      const id = await db.builds.add({
-        name: buildName.trim(),
-        materials,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-      setBuildName("");
-      setShowSaveDialog(false);
-      setError(null);
-
-      router.push(`/builds/${id}`);
-    } catch (err) {
-      setError("Failed to save build");
-      console.error(err);
-    }
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    });
   };
 
   return (
     <div className="flex flex-col gap-4">
       <GeneratorForm setMaterials={setMaterials} />
       {materials.length > 0 && (
-        <>
-          <MaterialGrid materials={materials} />
+        <div>
+          <MaterialGrid
+            materials={materials}
+            handleShare={handleShare}
+            shareSuccess={shareSuccess}
+          />
 
           <Button
             type="button"
@@ -75,53 +69,8 @@ export function Generator() {
             Save Build
             <Save />
           </Button>
-        </>
+        </div>
       )}
-
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="font-minecraft">
-          <DialogHeader>
-            <DialogTitle>Save Build</DialogTitle>
-            <DialogDescription>
-              Enter a name for your build to save it for later.
-            </DialogDescription>
-          </DialogHeader>
-          <Field>
-            <FieldLabel>Build Name</FieldLabel>
-            <FieldContent>
-              <Input
-                type="text"
-                value={buildName}
-                onChange={(e) => setBuildName(e.target.value)}
-                placeholder="My Awesome Build"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleSaveBuild();
-                  }
-                }}
-                autoFocus
-              />
-              {error && <FieldError>{error}</FieldError>}
-            </FieldContent>
-          </Field>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setShowSaveDialog(false);
-                setBuildName("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleSaveBuild}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

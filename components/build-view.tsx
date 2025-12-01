@@ -1,24 +1,39 @@
 "use client";
 
-import { db } from "@/lib/db";
-import { useLiveQuery } from "dexie-react-hooks";
 import { MaterialGrid } from "./material-grid";
+import type { Build } from "@/lib/db";
+import { useState } from "react";
+import { createBuildUrl } from "@/lib/build-encoding";
 
-export function BuildView({ id }: { id: string }) {
-  const build = useLiveQuery(() => db.builds.get(Number(id)));
+export function BuildView({ build }: { build: Omit<Build, "id"> }) {
+  const [shareSuccess, setShareSuccess] = useState(false);
 
-  if (build === undefined) {
-    return <div>Loading...</div>;
-  }
+  const handleShare = () => {
+    const url = createBuildUrl(build);
+    const fullUrl = window.location.origin + url;
 
-  if (build === null) {
-    return <div>Build not found</div>;
-  }
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    });
+  };
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1>{build.name}</h1>
-      <MaterialGrid materials={build.materials} />
+    <div className="flex flex-col gap-4 p-4 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-semibold">{build.name}</h1>
+      <div className="text-sm text-muted-foreground">
+        Created {new Date(build.createdAt).toLocaleDateString()}
+        {build.updatedAt !== build.createdAt && (
+          <> • Updated {new Date(build.updatedAt).toLocaleDateString()}</>
+        )}
+      </div>
+      <div>
+        <MaterialGrid
+          materials={build.materials}
+          handleShare={handleShare}
+          shareSuccess={shareSuccess}
+        />
+      </div>
     </div>
   );
 }

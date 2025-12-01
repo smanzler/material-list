@@ -4,9 +4,10 @@ import { db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Spinner } from "./ui/spinner";
 import { Button } from "./ui/button";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Share2 } from "lucide-react";
 import Link from "next/link";
 import { Empty, EmptyDescription, EmptyTitle } from "./ui/empty";
+import { createBuildUrl } from "@/lib/build-encoding";
 
 export function BuildsView() {
   const builds = useLiveQuery(() => db.builds.toArray());
@@ -20,7 +21,7 @@ export function BuildsView() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4 max-w-2xl mx-auto min-h-dvh">
+    <div className="flex flex-col gap-4 p-8 md:p-20 max-w-2xl mx-auto min-h-dvh">
       {builds.length === 0 ? (
         <Empty>
           <EmptyTitle>No builds yet</EmptyTitle>
@@ -36,6 +37,15 @@ export function BuildsView() {
         </Empty>
       ) : (
         <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <h2 className="text-2xl font-semibold">Your Builds</h2>
+            <Button type="button" variant="outline" size="sm" asChild>
+              <Link href="/">
+                <Plus className="h-4 w-4" />
+                Create build
+              </Link>
+            </Button>
+          </div>
           {builds.map((build) => (
             <div
               key={build.id}
@@ -49,10 +59,31 @@ export function BuildsView() {
                 </div>
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm">
-                  Load
+                <Button type="button" variant="outline" size="sm" asChild>
+                  <Link href={createBuildUrl(build)}>View</Link>
                 </Button>
-                <Button type="button" variant="outline" size="sm">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    const url = createBuildUrl(build);
+                    const fullUrl = window.location.origin + url;
+                    await navigator.clipboard.writeText(fullUrl);
+                  }}
+                >
+                  <Share2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (build.id && confirm("Delete this build?")) {
+                      await db.builds.delete(build.id);
+                    }
+                  }}
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
