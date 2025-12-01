@@ -70,7 +70,7 @@ function BuildCard({ build }: { build: Build }) {
               <Trash2 />
             </Button>
           </AlertDialogTrigger>
-          <AlertDialogContent>
+          <AlertDialogContent className="font-minecraft">
             <AlertDialogHeader>
               <AlertDialogTitle>Delete Build</AlertDialogTitle>
               <AlertDialogDescription>
