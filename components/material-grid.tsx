@@ -238,8 +238,8 @@ export function MaterialGrid({
   );
 
   return (
-    <div className="mt-8">
-      <div className="mb-4 flex items-center justify-between">
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">
           Your Material List ({materials.length} types, {totalQuantity} total)
         </h2>
@@ -275,6 +275,7 @@ export function MaterialGrid({
         <Button
           type="button"
           variant="outline"
+          className="w-fit self-end"
           onClick={() => setShowSaveDialog(true)}
           disabled={materials.length === 0}
         >
