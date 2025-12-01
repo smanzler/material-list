@@ -5,6 +5,15 @@ import { decodeBuild } from "@/lib/build-encoding";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { cache } from "react";
+
+const getBuild = cache((id: string) => {
+  return decodeBuild(id);
+});
+
+const getBaseUrl = () => {
+  return process.env.NEXT_PUBLIC_SITE_URL || "https://mclist.simonmanzler.com";
+};
 
 export async function generateMetadata({
   params,
@@ -12,7 +21,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const { id } = await params;
-  const build = decodeBuild(id);
+  const build = getBuild(id);
 
   if (!build) {
     return {
@@ -20,9 +29,26 @@ export async function generateMetadata({
     };
   }
 
+  const baseUrl = getBaseUrl();
+  const url = `${baseUrl}/builds/${id}`;
+  const title = build.name;
+  const description = `View ${build.materials.length} materials for ${build.name}`;
+
   return {
-    title: build.name,
-    description: `View ${build.materials.length} materials for ${build.name}`,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      type: "website",
+      siteName: "Minecraft Material List",
+    },
+    twitter: {
+      card: "summary",
+      title,
+      description,
+    },
   };
 }
 
@@ -32,7 +58,7 @@ export default async function BuildPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const build = decodeBuild(id);
+  const build = getBuild(id);
 
   if (!build) {
     return (
