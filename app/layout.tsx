@@ -72,7 +72,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          {children}
+          <main className="font-minecraft min-h-dvh">{children}</main>
         </ThemeProvider>
       </body>
     </html>

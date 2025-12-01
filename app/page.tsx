@@ -20,5 +20,9 @@ export const metadata: Metadata = {
 };
 
 export default function Home() {
-  return <Generator />;
+  return (
+    <div className="max-w-4xl mx-auto p-8 md:p-20">
+      <Generator />
+    </div>
+  );
 }

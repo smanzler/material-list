@@ -3,28 +3,9 @@
 import * as React from "react";
 import { getBlockImageUrl } from "@/lib/block-image-map";
 import Image from "next/image";
-import { Package, Save } from "lucide-react";
-import { Progress } from "./ui/progress";
+import { Package } from "lucide-react";
 import { Button } from "./ui/button";
 import type { Material } from "@/app/page";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "./ui/dialog";
-import { Field, FieldLabel, FieldContent, FieldError } from "./ui/field";
-import { Input } from "./ui/input";
-import { db } from "@/lib/db";
-
-interface MaterialGridProps {
-  materials: Material[];
-  onLoadingProgress?: (progress: number, isComplete: boolean) => void;
-  setIsSavedBuild: (isSavedBuild: boolean) => void;
-  isSavedBuild: boolean;
-}
 
 function formatMaterialName(name: string): string {
   return name
@@ -135,98 +116,8 @@ function MaterialCard({
   );
 }
 
-/**
- * Preloads an image and returns a promise that resolves when loaded or rejects on error
- */
-function preloadImage(url: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const img = new window.Image();
-    img.onload = () => resolve();
-    img.onerror = () => reject(new Error(`Failed to load image: ${url}`));
-    img.src = url;
-  });
-}
-
-export function MaterialGrid({
-  materials,
-  onLoadingProgress,
-  setIsSavedBuild,
-  isSavedBuild,
-}: MaterialGridProps) {
-  const [imagesLoaded, setImagesLoaded] = React.useState(false);
-  const [loadingProgress, setLoadingProgress] = React.useState(0);
+export function MaterialGrid({ materials }: { materials: Material[] }) {
   const [showStacks, setShowStacks] = React.useState(false);
-  const [showSaveDialog, setShowSaveDialog] = React.useState(false);
-  const [buildName, setBuildName] = React.useState("");
-  const [error, setError] = React.useState<string | null>(null);
-
-  React.useEffect(() => {
-    if (!materials || materials.length === 0) {
-      return;
-    }
-
-    const imageUrls = materials
-      .map((material) => getBlockImageUrl(material.name))
-      .filter((url): url is string => url !== undefined);
-
-    if (imageUrls.length === 0) {
-      setImagesLoaded(true);
-      onLoadingProgress?.(100, true);
-      return;
-    }
-
-    let loadedCount = 0;
-    const totalImages = imageUrls.length;
-
-    const loadPromises = imageUrls.map((url) =>
-      preloadImage(url)
-        .then(() => {
-          loadedCount++;
-          const progress = Math.round((loadedCount / totalImages) * 100);
-          setLoadingProgress(progress);
-          onLoadingProgress?.(progress, false);
-        })
-        .catch(() => {
-          loadedCount++;
-          const progress = Math.round((loadedCount / totalImages) * 100);
-          setLoadingProgress(progress);
-          onLoadingProgress?.(progress, false);
-        })
-    );
-
-    Promise.all(loadPromises).then(() => {
-      setImagesLoaded(true);
-      onLoadingProgress?.(100, true);
-    });
-  }, [materials, onLoadingProgress]);
-
-  const handleSaveBuild = async () => {
-    if (!buildName.trim()) {
-      setError("Build name cannot be empty");
-      return;
-    }
-
-    if (materials.length === 0) {
-      setError("No materials to save");
-      return;
-    }
-
-    try {
-      await db.builds.add({
-        name: buildName.trim(),
-        materials,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      });
-      setBuildName("");
-      setShowSaveDialog(false);
-      setError(null);
-      setIsSavedBuild(true);
-    } catch (err) {
-      setError("Failed to save build");
-      console.error(err);
-    }
-  };
 
   if (!materials || materials.length === 0) {
     return null;
@@ -251,83 +142,15 @@ export function MaterialGrid({
           {showStacks ? "Show Count" : "Show Stacks"}
         </Button>
       </div>
-      {!imagesLoaded ? (
-        <div className="flex flex-col items-center justify-center py-12">
-          <div className="mb-4 text-lg text-muted-foreground">
-            Loading images... {loadingProgress}%
-          </div>
-          <div className="w-full max-w-md">
-            <Progress value={loadingProgress} />
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-wrap">
-          {materials.map((material, index) => (
-            <MaterialCard
-              key={`${material}-${index}`}
-              material={material}
-              showStacks={showStacks}
-            />
-          ))}
-        </div>
-      )}
-      {!isSavedBuild && (
-        <Button
-          type="button"
-          variant="outline"
-          className="w-fit self-end"
-          onClick={() => setShowSaveDialog(true)}
-          disabled={materials.length === 0}
-        >
-          <Save />
-          Save Build
-        </Button>
-      )}
-
-      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
-        <DialogContent className="font-minecraft">
-          <DialogHeader>
-            <DialogTitle>Save Build</DialogTitle>
-            <DialogDescription>
-              Enter a name for your build to save it for later.
-            </DialogDescription>
-          </DialogHeader>
-          <Field>
-            <FieldLabel>Build Name</FieldLabel>
-            <FieldContent>
-              <Input
-                type="text"
-                value={buildName}
-                onChange={(e) => setBuildName(e.target.value)}
-                placeholder="My Awesome Build"
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleSaveBuild();
-                  }
-                }}
-                autoFocus
-              />
-              {error && <FieldError>{error}</FieldError>}
-            </FieldContent>
-          </Field>
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setShowSaveDialog(false);
-                setBuildName("");
-              }}
-            >
-              Cancel
-            </Button>
-            <Button type="button" onClick={handleSaveBuild}>
-              Save
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <div className="flex flex-wrap">
+        {materials.map((material, index) => (
+          <MaterialCard
+            key={`${material}-${index}`}
+            material={material}
+            showStacks={showStacks}
+          />
+        ))}
+      </div>
     </div>
   );
 }
