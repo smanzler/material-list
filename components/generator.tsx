@@ -59,16 +59,6 @@ export function Generator() {
             handleShare={handleShare}
             shareSuccess={shareSuccess}
           />
-
-          <Button
-            type="button"
-            variant="ghost"
-            className="mt-4 self-end"
-            onClick={() => setShowSaveDialog(true)}
-          >
-            Save Build
-            <Save />
-          </Button>
         </div>
       )}
     </div>

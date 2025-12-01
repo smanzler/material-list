@@ -7,6 +7,7 @@ import { Kbd, KbdGroup } from "./ui/kbd";
 import { FolderOpen } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import type { Material } from "./generator";
+import Link from "next/link";
 
 function parseMaterialList(materialList: string): Material[] {
   return materialList
@@ -101,8 +102,12 @@ export function GeneratorForm({
             </KbdGroup>
           )}
         </Button>
-        <Button type="button" variant="outline">
-          <FolderOpen />
+
+        <Button type="button" variant="outline" asChild>
+          <Link href="/builds">
+            <FolderOpen />
+            Your Builds
+          </Link>
         </Button>
       </div>
     </form>
