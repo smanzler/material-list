@@ -1978,6 +1978,105 @@ export const BLOCK_IMAGE_MAP: Record<string, string> = {
 };
 
 /**
+ * Alias map for common block name variations
+ * Maps alternative names to their canonical block names
+ */
+const BLOCK_ALIASES: Record<string, string> = {
+  // Wood and Planks
+  planks: "oak_planks",
+  wooden_planks: "oak_planks",
+  wood: "oak_log",
+  log: "oak_log",
+  oak_wood: "oak_log",
+
+  // Stone variants
+  cobble: "cobblestone",
+  stone_brick: "stone_bricks",
+  brick: "bricks",
+
+  // Ores and Minerals
+  iron: "iron_ingot",
+  gold: "gold_ingot",
+  lapis: "lapis_lazuli",
+  redstone: "redstone_dust",
+
+  // Blocks
+  amber_block: "block_of_amber",
+  amethyst_block: "block_of_amethyst",
+  bamboo_block: "block_of_bamboo",
+  coal_block: "block_of_coal",
+  copper_block: "block_of_copper",
+  corrupted_potato_peels_block: "block_of_corrupted_potato_peels",
+  diamond_block: "block_of_diamond",
+  emerald_block: "block_of_emerald",
+  gold_block: "block_of_gold",
+  iron_block: "block_of_iron",
+  lapis_block: "block_of_lapis_lazuli",
+  netherite_block: "block_of_netherite",
+  potato_peels_block: "block_of_potato_peels",
+  quartz_block: "block_of_quartz",
+  raw_copper_block: "block_of_raw_copper",
+  raw_gold_block: "block_of_raw_gold",
+  raw_iron_block: "block_of_raw_iron",
+  redstone_block: "block_of_redstone",
+  resin_block: "block_of_resin",
+  stripped_bamboo_block: "block_of_stripped_bamboo",
+
+  // Grass and Dirt
+  grass: "grass_block",
+  dirt_block: "dirt",
+
+  // Glass
+  glass_block: "glass",
+
+  // Concrete
+  concrete: "white_concrete",
+  concrete_powder: "white_concrete_powder",
+
+  // Terracotta
+  hardened_clay: "terracotta",
+
+  // Wool
+  wool: "white_wool",
+
+  // Nether
+  netherrack: "netherrack",
+  nether_rack: "netherrack",
+  nether_brick: "nether_bricks",
+
+  // End
+  ender_stone: "end_stone",
+
+  // Slabs
+  slab: "stone_slab",
+
+  // Stairs
+  stairs: "oak_stairs",
+
+  // Doors
+  door: "oak_door",
+
+  // Fences
+  fence: "oak_fence",
+
+  // Buttons
+  button: "stone_button",
+
+  // Pressure Plates
+  pressure_plate: "stone_pressure_plate",
+
+  // Signs
+  sign: "oak_sign",
+
+  // Beds
+  bed: "white_bed",
+
+  // Crafting
+  workbench: "crafting_table",
+  crafting_bench: "crafting_table",
+};
+
+/**
  * Gets the image URL for a block name
  * @param blockName - The name of the block (case-insensitive, spaces or underscores)
  * @returns The image URL or undefined if not found
@@ -1988,5 +2087,9 @@ export function getBlockImageUrl(blockName: string): string | undefined {
     .toLowerCase()
     .trim()
     .replace(/\s+/g, "_");
-  return BLOCK_IMAGE_MAP[normalized];
+
+  const aliasedName = BLOCK_ALIASES[normalized];
+  const lookupName = aliasedName || normalized;
+
+  return BLOCK_IMAGE_MAP[lookupName] || BLOCK_IMAGE_MAP[normalized];
 }
