@@ -9,8 +9,53 @@ const minecraftFont = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Minecraft Material List",
-  description: "Generate a list of materials for your Minecraft builds",
+  title: {
+    default: "Minecraft Material List Generator",
+    template: "%s | Minecraft Material List",
+  },
+  description:
+    "Create and visualize your Minecraft material lists with images. Track quantities, view stacks, and export your build materials. Perfect for planning large Minecraft projects.",
+  keywords: [
+    "minecraft",
+    "material list",
+    "minecraft builder",
+    "build planner",
+    "minecraft materials",
+    "block counter",
+    "minecraft inventory",
+    "build calculator",
+  ],
+  authors: [{ name: "Minecraft Material List" }],
+  creator: "Minecraft Material List",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: process.env.NEXT_PUBLIC_SITE_URL || "https://mclist.simonmanzler.com",
+    title: "Minecraft Material List Generator",
+    description:
+      "Create and visualize your Minecraft material lists with images. Track quantities, view stacks, and export your build materials.",
+    siteName: "Minecraft Material List",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Minecraft Material List Generator",
+    description:
+      "Create and visualize your Minecraft material lists with images. Track quantities, view stacks, and export your build materials.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
+  },
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://mclist.simonmanzler.com"
+  ),
 };
 
 export default function RootLayout({
