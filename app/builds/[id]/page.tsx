@@ -4,6 +4,27 @@ import { Empty, EmptyDescription, EmptyTitle } from "@/components/ui/empty";
 import { decodeBuild } from "@/lib/build-encoding";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import type { Metadata } from "next";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const build = decodeBuild(id);
+
+  if (!build) {
+    return {
+      title: "Build not found",
+    };
+  }
+
+  return {
+    title: build.name,
+    description: `View ${build.materials.length} materials for ${build.name}`,
+  };
+}
 
 export default async function BuildPage({
   params,
