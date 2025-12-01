@@ -3,14 +3,27 @@
 import * as React from "react";
 import { getBlockImageUrl } from "@/lib/block-image-map";
 import Image from "next/image";
-import { Package } from "lucide-react";
+import { Package, Save } from "lucide-react";
 import { Progress } from "./ui/progress";
 import { Button } from "./ui/button";
 import type { Material } from "@/app/page";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "./ui/dialog";
+import { Field, FieldLabel, FieldContent, FieldError } from "./ui/field";
+import { Input } from "./ui/input";
+import { db } from "@/lib/db";
 
 interface MaterialGridProps {
   materials: Material[];
   onLoadingProgress?: (progress: number, isComplete: boolean) => void;
+  setIsSavedBuild: (isSavedBuild: boolean) => void;
+  isSavedBuild: boolean;
 }
 
 function formatMaterialName(name: string): string {
@@ -137,10 +150,15 @@ function preloadImage(url: string): Promise<void> {
 export function MaterialGrid({
   materials,
   onLoadingProgress,
+  setIsSavedBuild,
+  isSavedBuild,
 }: MaterialGridProps) {
   const [imagesLoaded, setImagesLoaded] = React.useState(false);
   const [loadingProgress, setLoadingProgress] = React.useState(0);
   const [showStacks, setShowStacks] = React.useState(false);
+  const [showSaveDialog, setShowSaveDialog] = React.useState(false);
+  const [buildName, setBuildName] = React.useState("");
+  const [error, setError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     if (!materials || materials.length === 0) {
@@ -182,6 +200,34 @@ export function MaterialGrid({
     });
   }, [materials, onLoadingProgress]);
 
+  const handleSaveBuild = async () => {
+    if (!buildName.trim()) {
+      setError("Build name cannot be empty");
+      return;
+    }
+
+    if (materials.length === 0) {
+      setError("No materials to save");
+      return;
+    }
+
+    try {
+      await db.builds.add({
+        name: buildName.trim(),
+        materials,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+      setBuildName("");
+      setShowSaveDialog(false);
+      setError(null);
+      setIsSavedBuild(true);
+    } catch (err) {
+      setError("Failed to save build");
+      console.error(err);
+    }
+  };
+
   if (!materials || materials.length === 0) {
     return null;
   }
@@ -190,18 +236,6 @@ export function MaterialGrid({
     (sum, material) => sum + material.quantity,
     0
   );
-
-  const saveToBuilds = (materials: Material[]) => {
-    const list = materials
-      .map((material) => `${material.quantity} ${material.name}`)
-      .join("\n");
-    const blob = new Blob([list], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "materials.txt";
-    a.click();
-  };
 
   return (
     <div className="mt-8">
@@ -237,14 +271,62 @@ export function MaterialGrid({
           ))}
         </div>
       )}
+      {!isSavedBuild && (
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => setShowSaveDialog(true)}
+          disabled={materials.length === 0}
+        >
+          <Save />
+          Save Build
+        </Button>
+      )}
 
-      <Button
-        variant="outline"
-        size="sm"
-        onClick={() => saveToBuilds(materials)}
-      >
-        Save to builds
-      </Button>
+      <Dialog open={showSaveDialog} onOpenChange={setShowSaveDialog}>
+        <DialogContent className="font-minecraft">
+          <DialogHeader>
+            <DialogTitle>Save Build</DialogTitle>
+            <DialogDescription>
+              Enter a name for your build to save it for later.
+            </DialogDescription>
+          </DialogHeader>
+          <Field>
+            <FieldLabel>Build Name</FieldLabel>
+            <FieldContent>
+              <Input
+                type="text"
+                value={buildName}
+                onChange={(e) => setBuildName(e.target.value)}
+                placeholder="My Awesome Build"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    handleSaveBuild();
+                  }
+                }}
+                autoFocus
+              />
+              {error && <FieldError>{error}</FieldError>}
+            </FieldContent>
+          </Field>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowSaveDialog(false);
+                setBuildName("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button type="button" onClick={handleSaveBuild}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

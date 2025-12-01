@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -11,6 +11,9 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { MaterialGrid } from "@/components/material-grid";
 import { Spinner } from "@/components/ui/spinner";
+import { db, type Build } from "@/lib/db";
+import { Trash2, Save, FolderOpen } from "lucide-react";
+import { useLiveQuery } from "dexie-react-hooks";
 
 export interface Material {
   name: string;
@@ -41,6 +44,9 @@ export function Generator() {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState(0);
+  const [showBuilds, setShowBuilds] = useState(false);
+  const builds = useLiveQuery(() => db.builds.toArray());
+  const [isSavedBuild, setIsSavedBuild] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,6 +70,31 @@ export function Generator() {
     }
   };
 
+  const handleLoadBuild = async (build: Build) => {
+    if (!build.materials || build.materials.length === 0) {
+      setError("Build has no materials");
+      return;
+    }
+
+    const materialText = build.materials
+      .map((m) => `${m.quantity} ${m.name}`)
+      .join("\n");
+    setMaterialList(materialText);
+    setMaterials(build.materials);
+    setShowBuilds(false);
+    setIsSavedBuild(true);
+    setError(null);
+  };
+
+  const handleDeleteBuild = async (id: number) => {
+    try {
+      await db.builds.delete(id);
+    } catch (err) {
+      setError("Failed to delete build");
+      console.error(err);
+    }
+  };
+
   return (
     <div>
       <main className="max-w-4xl mx-auto p-8 md:p-20 font-minecraft">
@@ -81,16 +112,28 @@ export function Generator() {
               {error && <FieldError>{error}</FieldError>}
             </FieldContent>
           </Field>
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? (
-              <>
-                <Spinner />
-                Loading images... {loadingProgress}%
-              </>
-            ) : (
-              "Generate Visual List"
-            )}
-          </Button>
+          <div className="flex gap-2">
+            <Button type="submit" className="flex-1" disabled={isLoading}>
+              {isLoading ? (
+                <>
+                  <Spinner />
+                  Loading images... {loadingProgress}%
+                </>
+              ) : (
+                "Generate Visual List"
+              )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowBuilds(!showBuilds)}
+              disabled={!builds}
+            >
+              <FolderOpen />
+              {showBuilds ? "Hide" : "View"} Saved Builds ({builds?.length ?? 0}
+              )
+            </Button>
+          </div>
         </form>
 
         {materials.length > 0 && (
@@ -98,7 +141,56 @@ export function Generator() {
             <MaterialGrid
               materials={materials}
               onLoadingProgress={handleLoadingProgress}
+              setIsSavedBuild={setIsSavedBuild}
+              isSavedBuild={isSavedBuild}
             />
+          </div>
+        )}
+
+        {showBuilds && builds && (
+          <div className="mt-8 rounded-lg border p-6">
+            <h3 className="mb-4 text-xl font-semibold">Saved Builds</h3>
+            {builds.length === 0 ? (
+              <p className="text-muted-foreground">
+                No saved builds yet. Create a material list and save it to get
+                started!
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {builds.map((build) => (
+                  <div
+                    key={build.id}
+                    className="flex items-center justify-between rounded-md border p-3 hover:bg-muted/50"
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium">{build.name}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {build.materials.length} materials •{" "}
+                        {new Date(build.updatedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleLoadBuild(build)}
+                      >
+                        Load
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => build.id && handleDeleteBuild(build.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
