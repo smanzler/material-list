@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Field,
@@ -12,8 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { MaterialGrid } from "@/components/material-grid";
 import { Spinner } from "@/components/ui/spinner";
 import { db, type Build } from "@/lib/db";
-import { Trash2, Save, FolderOpen } from "lucide-react";
+import { Trash2, FolderOpen } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
+import { Kbd, KbdGroup } from "./ui/kbd";
 
 export interface Material {
   name: string;
@@ -47,21 +48,29 @@ export function Generator() {
   const [showBuilds, setShowBuilds] = useState(false);
   const builds = useLiveQuery(() => db.builds.toArray());
   const [isSavedBuild, setIsSavedBuild] = useState(false);
+  const [isMac, setIsMac] = useState<boolean | undefined>(undefined);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
+  useEffect(() => {
+    setIsMac(navigator.userAgent.toUpperCase().indexOf("MAC") >= 0);
+  }, []);
 
-    if (!materialList.trim()) {
-      setError("Material list cannot be empty");
-      return;
-    }
+  const handleSubmit = useCallback(
+    (e?: React.FormEvent) => {
+      e?.preventDefault();
+      setError(null);
 
-    const parsedMaterials = parseMaterialList(materialList);
-    setMaterials(parsedMaterials);
-    setIsLoading(true);
-    setLoadingProgress(0);
-  };
+      if (!materialList.trim()) {
+        setError("Material list cannot be empty");
+        return;
+      }
+      setIsLoading(true);
+
+      const parsedMaterials = parseMaterialList(materialList);
+      setMaterials(parsedMaterials);
+      setLoadingProgress(0);
+    },
+    [materialList]
+  );
 
   const handleLoadingProgress = (progress: number, isComplete: boolean) => {
     setLoadingProgress(progress);
@@ -69,6 +78,23 @@ export function Generator() {
       setIsLoading(false);
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        (isMac ? e.metaKey : e.ctrlKey) &&
+        e.key === "Enter" &&
+        !isLoading &&
+        materialList.trim()
+      ) {
+        e.preventDefault();
+        handleSubmit();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [materialList, isLoading, isMac, handleSubmit]);
 
   const handleLoadBuild = async (build: Build) => {
     if (!build.materials || build.materials.length === 0) {
@@ -120,7 +146,20 @@ export function Generator() {
                   Loading images... {loadingProgress}%
                 </>
               ) : (
-                "Generate Visual List"
+                <>
+                  Generate Visual List
+                  {isMac !== undefined && (
+                    <KbdGroup>
+                      <Kbd className="bg-background/20 text-background dark:bg-background/10">
+                        {isMac ? "⌘" : "Ctrl"}
+                      </Kbd>
+                      <span>+</span>
+                      <Kbd className="bg-background/20 text-background dark:bg-background/10">
+                        ⏎
+                      </Kbd>
+                    </KbdGroup>
+                  )}
+                </>
               )}
             </Button>
             <Button
