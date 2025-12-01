@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import localFont from "next/font/local";
+import { Toaster } from "@/components/ui/sonner";
 
 const minecraftFont = localFont({
   src: "../fonts/Minecraft-Regular.otf",
@@ -73,6 +74,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <main className="font-minecraft min-h-dvh">{children}</main>
+          <Toaster position="top-right" />
         </ThemeProvider>
       </body>
     </html>

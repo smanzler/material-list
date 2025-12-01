@@ -4,7 +4,7 @@ import { Build, db } from "@/lib/db";
 import { useLiveQuery } from "dexie-react-hooks";
 import { Spinner } from "./ui/spinner";
 import { Button } from "./ui/button";
-import { Plus, Trash2, Share2 } from "lucide-react";
+import { Plus, Trash2, Share2, Check, Share } from "lucide-react";
 import Link from "next/link";
 import { Empty, EmptyDescription, EmptyTitle } from "./ui/empty";
 import { createBuildUrl } from "@/lib/build-encoding";
@@ -20,6 +20,7 @@ import {
   AlertDialogTrigger,
 } from "./ui/alert-dialog";
 import { useState } from "react";
+import { toast } from "sonner";
 
 function BuildCard({ build }: { build: Build }) {
   const [shareSuccess, setShareSuccess] = useState(false);
@@ -29,6 +30,7 @@ function BuildCard({ build }: { build: Build }) {
     const fullUrl = window.location.origin + url;
     navigator.clipboard.writeText(fullUrl).then(() => {
       setShareSuccess(true);
+      toast.success("Build URL copied to clipboard");
       setTimeout(() => setShareSuccess(false), 2000);
     });
   };
@@ -62,7 +64,7 @@ function BuildCard({ build }: { build: Build }) {
           size="sm"
           onClick={() => handleShare(build)}
         >
-          {shareSuccess ? "Copied!" : <Share2 />}
+          {shareSuccess ? <Check /> : <Share />}
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
