@@ -191,6 +191,18 @@ export function MaterialGrid({
     0
   );
 
+  const saveToBuilds = (materials: Material[]) => {
+    const list = materials
+      .map((material) => `${material.quantity} ${material.name}`)
+      .join("\n");
+    const blob = new Blob([list], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "materials.txt";
+    a.click();
+  };
+
   return (
     <div className="mt-8">
       <div className="mb-4 flex items-center justify-between">
@@ -225,6 +237,14 @@ export function MaterialGrid({
           ))}
         </div>
       )}
+
+      <Button
+        variant="outline"
+        size="sm"
+        onClick={() => saveToBuilds(materials)}
+      >
+        Save to builds
+      </Button>
     </div>
   );
 }

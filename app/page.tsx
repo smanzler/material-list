@@ -10,7 +10,6 @@ import {
 } from "@/components/ui/field";
 import { Textarea } from "@/components/ui/textarea";
 import { MaterialGrid } from "@/components/MaterialGrid";
-import { Loader2 } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 
 export interface Material {
