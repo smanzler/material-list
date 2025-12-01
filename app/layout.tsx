@@ -26,8 +26,8 @@ export const metadata: Metadata = {
     "minecraft inventory",
     "build calculator",
   ],
-  authors: [{ name: "Minecraft Material List" }],
-  creator: "Minecraft Material List",
+  authors: [{ name: "Simon Manzler" }],
+  creator: "Simon Manzler",
   openGraph: {
     type: "website",
     locale: "en_US",
