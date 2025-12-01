@@ -2091,14 +2091,14 @@ function normalizeBlockName(blockName: string): string {
  * Lookup strategies in order of priority
  * Each function takes a normalized name and returns an image URL or undefined
  */
-const LOOKUP_STRATEGIES = [
+const LOOKUP_STRATEGIES: ((normalized: string) => string | undefined)[] = [
   // Strategy 1: Direct lookup (exact match)
   (normalized: string) => BLOCK_IMAGE_MAP[normalized],
 
   // Strategy 2: Alias lookup (common name variations)
   (normalized: string) => {
     const aliasedName = BLOCK_ALIASES[normalized];
-    return aliasedName ? BLOCK_IMAGE_MAP[aliasedName] : undefined;
+    return BLOCK_IMAGE_MAP[aliasedName];
   },
 
   // Strategy 3: Plural/singular variations
