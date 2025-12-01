@@ -2077,19 +2077,57 @@ const BLOCK_ALIASES: Record<string, string> = {
 };
 
 /**
+ * Normalizes a block name for lookup
+ */
+function normalizeBlockName(blockName: string): string {
+  return blockName
+    .replace(/[0-9]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, "_");
+}
+
+/**
+ * Lookup strategies in order of priority
+ * Each function takes a normalized name and returns an image URL or undefined
+ */
+const LOOKUP_STRATEGIES = [
+  // Strategy 1: Direct lookup (exact match)
+  (normalized: string) => BLOCK_IMAGE_MAP[normalized],
+
+  // Strategy 2: Alias lookup (common name variations)
+  (normalized: string) => {
+    const aliasedName = BLOCK_ALIASES[normalized];
+    return aliasedName ? BLOCK_IMAGE_MAP[aliasedName] : undefined;
+  },
+
+  // Strategy 3: Plural/singular variations
+  (normalized: string) => {
+    if (normalized.endsWith("s")) {
+      // Try singular (remove 's')
+      const singular = normalized.slice(0, -1);
+      return BLOCK_IMAGE_MAP[singular];
+    } else {
+      // Try plural (add 's')
+      const plural = normalized + "s";
+      return BLOCK_IMAGE_MAP[plural];
+    }
+  },
+];
+
+/**
  * Gets the image URL for a block name
  * @param blockName - The name of the block (case-insensitive, spaces or underscores)
  * @returns The image URL or undefined if not found
  */
 export function getBlockImageUrl(blockName: string): string | undefined {
-  const normalized = blockName
-    .replace(/[0-9]/g, "")
-    .toLowerCase()
-    .trim()
-    .replace(/\s+/g, "_");
+  const normalized = normalizeBlockName(blockName);
 
-  const aliasedName = BLOCK_ALIASES[normalized];
-  const lookupName = aliasedName || normalized;
+  // Try each lookup strategy in order
+  for (const strategy of LOOKUP_STRATEGIES) {
+    const result = strategy(normalized);
+    if (result) return result;
+  }
 
-  return BLOCK_IMAGE_MAP[lookupName] || BLOCK_IMAGE_MAP[normalized];
+  return undefined;
 }
