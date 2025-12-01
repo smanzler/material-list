@@ -5,6 +5,7 @@ import { getBlockImageUrl } from "@/lib/block-image-map";
 import Image from "next/image";
 import { Package } from "lucide-react";
 import { Progress } from "./ui/progress";
+import { Button } from "./ui/button";
 import type { Material } from "@/app/page";
 
 interface MaterialGridProps {
@@ -21,7 +22,32 @@ function formatMaterialName(name: string): string {
     .join(" ");
 }
 
-function MaterialCard({ material }: { material: Material }) {
+function formatQuantity(quantity: number, showStacks: boolean): string {
+  if (!showStacks) {
+    return quantity.toString();
+  }
+
+  const stacks = Math.floor(quantity / 64);
+  const remainder = quantity % 64;
+
+  if (stacks === 0) {
+    return remainder.toString();
+  }
+
+  if (remainder === 0) {
+    return `${stacks}s`;
+  }
+
+  return `${stacks}s+${remainder}`;
+}
+
+function MaterialCard({
+  material,
+  showStacks,
+}: {
+  material: Material;
+  showStacks: boolean;
+}) {
   const formattedName = formatMaterialName(material.name);
   const imageUrl = getBlockImageUrl(material.name);
   const [isHovered, setIsHovered] = React.useState(false);
@@ -81,7 +107,7 @@ function MaterialCard({ material }: { material: Material }) {
           <Package className="h-16 w-16 text-muted-foreground" />
         )}
         <span className="text-xl absolute bottom-2 right-2 font-minecraft">
-          {material.quantity}
+          {formatQuantity(material.quantity, showStacks)}
         </span>
       </div>
       {isHovered && (
@@ -114,6 +140,7 @@ export function MaterialGrid({
 }: MaterialGridProps) {
   const [imagesLoaded, setImagesLoaded] = React.useState(false);
   const [loadingProgress, setLoadingProgress] = React.useState(0);
+  const [showStacks, setShowStacks] = React.useState(false);
 
   React.useEffect(() => {
     if (!materials || materials.length === 0) {
@@ -166,9 +193,18 @@ export function MaterialGrid({
 
   return (
     <div className="mt-8">
-      <h2 className="mb-4 text-2xl font-semibold">
-        Your Material List ({materials.length} types, {totalQuantity} total)
-      </h2>
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-2xl font-semibold">
+          Your Material List ({materials.length} types, {totalQuantity} total)
+        </h2>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowStacks(!showStacks)}
+        >
+          {showStacks ? "Show Count" : "Show Stacks"}
+        </Button>
+      </div>
       {!imagesLoaded ? (
         <div className="flex flex-col items-center justify-center py-12">
           <div className="mb-4 text-lg text-muted-foreground">
@@ -181,7 +217,11 @@ export function MaterialGrid({
       ) : (
         <div className="flex flex-wrap">
           {materials.map((material, index) => (
-            <MaterialCard key={`${material}-${index}`} material={material} />
+            <MaterialCard
+              key={`${material}-${index}`}
+              material={material}
+              showStacks={showStacks}
+            />
           ))}
         </div>
       )}
