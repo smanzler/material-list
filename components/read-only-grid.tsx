@@ -81,14 +81,12 @@ export function ReadOnlyGrid({
       };
 
       // Save to Dexie for local storage
-      await db.builds.add(build);
+      const id = await db.builds.add(build);
 
-      // Navigate to URL-encoded build (shareable, SSR-compatible)
-      const url = createBuildUrl(build);
       setBuildName("");
       setError(null);
 
-      router.push(url);
+      router.push(`/builds/saved/${id}`);
     } catch (err) {
       setError("Failed to save build");
       console.error(err);

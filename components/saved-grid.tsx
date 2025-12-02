@@ -204,17 +204,17 @@ export function SavedGrid({ build }: { build: Build }) {
   };
 
   const toggleCollected = async (materialIndex: number) => {
-    const newCollected = !build.collectedMaterials?.includes(materialIndex);
-    if (newCollected) {
-      build.collectedMaterials?.push(materialIndex);
-    } else {
-      build.collectedMaterials?.splice(
-        build.collectedMaterials.indexOf(materialIndex),
-        1
-      );
-    }
+    if (!build.id) return;
+
+    const currentCollected = build.collectedMaterials || [];
+    const isCollected = currentCollected.includes(materialIndex);
+
+    const updatedCollected = isCollected
+      ? currentCollected.filter((idx) => idx !== materialIndex)
+      : [...currentCollected, materialIndex];
+
     await db.builds.update(build.id, {
-      collectedMaterials: build.collectedMaterials,
+      collectedMaterials: updatedCollected,
       updatedAt: Date.now(),
     });
   };
