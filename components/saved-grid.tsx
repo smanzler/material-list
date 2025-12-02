@@ -3,29 +3,16 @@
 import * as React from "react";
 import { getBlockImageUrl } from "@/lib/block-image-map";
 import Image from "next/image";
-import { Package, Save, Share2 } from "lucide-react";
+import { Check, Package, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createBuildUrl } from "@/lib/build-encoding";
-import { useRouter } from "next/navigation";
 import type { Material } from "@/app/page";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  Field,
-  FieldLabel,
-  FieldContent,
-  FieldError,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import type { Build } from "@/lib/db";
+import { db } from "@/lib/db";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { useTheme } from "next-themes";
+import { Badge } from "./ui/badge";
+import { motion, AnimatePresence } from "framer-motion";
 
 function formatMaterialName(name: string): string {
   return name
@@ -58,16 +45,22 @@ function formatQuantity(quantity: number, showStacks: boolean): string {
 function MaterialCard({
   material,
   showStacks,
+  isCollected,
+  onToggleCollected,
 }: {
   material: Material;
   showStacks: boolean;
+  isCollected: boolean;
+  onToggleCollected: () => Promise<void>;
 }) {
   const formattedName = formatMaterialName(material.name);
   const imageUrl = getBlockImageUrl(material.name);
   const [isHovered, setIsHovered] = React.useState(false);
   const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
+  const [opacity, setOpacity] = React.useState(1);
   const tooltipRef = React.useRef<HTMLDivElement>(null);
   const dotLottieRef = React.useRef<any>(null);
+  const [isAnimating, setIsAnimating] = React.useState(false);
 
   const { resolvedTheme } = useTheme();
 
@@ -75,11 +68,22 @@ function MaterialCard({
     setMousePosition({ x: e.clientX, y: e.clientY });
   };
 
-  const handleClick = () => {
-    if (dotLottieRef.current) {
+  const handleClick = async () => {
+    if (!isCollected && dotLottieRef.current) {
+      setIsAnimating(true);
       dotLottieRef.current.stop();
       dotLottieRef.current.setFrame(0);
       dotLottieRef.current.play();
+
+      setTimeout(() => {
+        setOpacity(0);
+      }, 550);
+
+      setTimeout(async () => {
+        await onToggleCollected();
+      }, 1500);
+    } else {
+      await onToggleCollected();
     }
   };
 
@@ -114,33 +118,52 @@ function MaterialCard({
 
   return (
     <>
-      <div
+      <motion.div
+        layout
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.8 }}
         className="relative flex items-center justify-center w-20 h-20 p-2 cursor-pointer"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onMouseMove={handleMouseMove}
         onClick={handleClick}
       >
-        {imageUrl ? (
-          <Image
-            width={64}
-            height={64}
-            src={imageUrl}
-            alt={formattedName}
-            className="h-full w-full object-contain"
-          />
-        ) : (
-          <Package className="h-16 w-16 text-muted-foreground" />
-        )}
-        <span className="text-xl absolute bottom-2 right-2 font-minecraft">
-          {formatQuantity(material.quantity, showStacks)}
-        </span>
+        <div
+          style={{
+            opacity: isAnimating ? opacity : isCollected ? 0.5 : 1,
+          }}
+        >
+          {imageUrl ? (
+            <Image
+              width={64}
+              height={64}
+              src={imageUrl}
+              alt={formattedName}
+              className="h-full w-full object-contain"
+            />
+          ) : (
+            <Package className="h-16 w-16 text-muted-foreground" />
+          )}
+          <span className="text-xl absolute bottom-2 right-2 font-minecraft">
+            {formatQuantity(material.quantity, showStacks)}
+          </span>
+          {isCollected && (
+            <Badge
+              variant="outline"
+              className="absolute top-1 left-1 bg-green-500 px-1"
+            >
+              <Check />
+            </Badge>
+          )}
+        </div>
 
         <div
           className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-50 pointer-events-none"
           style={{
             filter:
               resolvedTheme === "dark" ? "invert(1) brightness(1)" : "none",
+            opacity: 1, // Always keep animation at full opacity
           }}
         >
           <DotLottieReact
@@ -153,7 +176,7 @@ function MaterialCard({
             }}
           />
         </div>
-      </div>
+      </motion.div>
       {isHovered && (
         <div
           ref={tooltipRef}
@@ -168,7 +191,6 @@ function MaterialCard({
 
 export function SavedGrid({ build }: { build: Build }) {
   const [showStacks, setShowStacks] = React.useState(false);
-
   const [shareSuccess, setShareSuccess] = React.useState(false);
 
   const handleShare = () => {
@@ -181,11 +203,38 @@ export function SavedGrid({ build }: { build: Build }) {
     });
   };
 
+  const toggleCollected = async (materialIndex: number) => {
+    const newCollected = !build.collectedMaterials?.includes(materialIndex);
+    if (newCollected) {
+      build.collectedMaterials?.push(materialIndex);
+    } else {
+      build.collectedMaterials?.splice(
+        build.collectedMaterials.indexOf(materialIndex),
+        1
+      );
+    }
+    await db.builds.update(build.id, {
+      collectedMaterials: build.collectedMaterials,
+      updatedAt: Date.now(),
+    });
+  };
+
   if (!build.materials || build.materials.length === 0) {
     return null;
   }
 
+  const uncollectedMaterials = build.materials.filter(
+    (_, index) => !build.collectedMaterials?.includes(index)
+  );
+  const collectedMaterialsList = build.materials.filter((_, index) =>
+    build.collectedMaterials?.includes(index)
+  );
+
   const totalQuantity = build.materials.reduce(
+    (sum, material) => sum + material.quantity,
+    0
+  );
+  const collectedQuantity = collectedMaterialsList.reduce(
     (sum, material) => sum + material.quantity,
     0
   );
@@ -195,6 +244,12 @@ export function SavedGrid({ build }: { build: Build }) {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">
           {build.name} ({build.materials.length} types, {totalQuantity} total)
+          {build.collectedMaterials && build.collectedMaterials.length > 0 && (
+            <span className="text-lg text-muted-foreground ml-2">
+              • {build.collectedMaterials.length} collected ({collectedQuantity}
+              )
+            </span>
+          )}
         </h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleShare}>
@@ -210,15 +265,62 @@ export function SavedGrid({ build }: { build: Build }) {
           </Button>
         </div>
       </div>
-      <div className="flex flex-wrap">
-        {build.materials.map((material, index) => (
-          <MaterialCard
-            key={`${material}-${index}`}
-            material={material}
-            showStacks={showStacks}
-          />
-        ))}
-      </div>
+
+      {uncollectedMaterials.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-lg font-semibold">
+            To Collect ({uncollectedMaterials.length})
+          </h3>
+          <motion.div
+            layout
+            className="flex flex-wrap"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <AnimatePresence mode="popLayout">
+              {build.materials.map((material, index) => {
+                if (build.collectedMaterials?.includes(index)) return null;
+                return (
+                  <MaterialCard
+                    key={`material-${build.id}-${index}`}
+                    material={material}
+                    showStacks={showStacks}
+                    isCollected={false}
+                    onToggleCollected={async () => await toggleCollected(index)}
+                  />
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      )}
+
+      {collectedMaterialsList.length > 0 && (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-lg font-semibold">
+            Collected ({collectedMaterialsList.length})
+          </h3>
+          <motion.div
+            layout
+            className="flex flex-wrap"
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+          >
+            <AnimatePresence mode="popLayout">
+              {build.materials.map((material, index) => {
+                if (!build.collectedMaterials?.includes(index)) return null;
+                return (
+                  <MaterialCard
+                    key={`collected-material-${build.id}-${index}`}
+                    material={material}
+                    showStacks={showStacks}
+                    isCollected={true}
+                    onToggleCollected={async () => await toggleCollected(index)}
+                  />
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }
