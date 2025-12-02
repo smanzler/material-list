@@ -2074,6 +2074,10 @@ const BLOCK_ALIASES: Record<string, string> = {
   // Crafting
   workbench: "crafting_table",
   crafting_bench: "crafting_table",
+
+  // Other
+  chains: "iron_chain",
+  chain: "iron_chain",
 };
 
 /**
