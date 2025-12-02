@@ -23,7 +23,7 @@ import {
   FieldError,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { db } from "@/lib/db";
+import type { Build } from "@/lib/db";
 import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import { useTheme } from "next-themes";
 
@@ -67,9 +67,20 @@ function MaterialCard({
   const [isHovered, setIsHovered] = React.useState(false);
   const [mousePosition, setMousePosition] = React.useState({ x: 0, y: 0 });
   const tooltipRef = React.useRef<HTMLDivElement>(null);
+  const dotLottieRef = React.useRef<any>(null);
+
+  const { resolvedTheme } = useTheme();
 
   const handleMouseMove = (e: React.MouseEvent) => {
     setMousePosition({ x: e.clientX, y: e.clientY });
+  };
+
+  const handleClick = () => {
+    if (dotLottieRef.current) {
+      dotLottieRef.current.stop();
+      dotLottieRef.current.setFrame(0);
+      dotLottieRef.current.play();
+    }
   };
 
   React.useEffect(() => {
@@ -108,6 +119,7 @@ function MaterialCard({
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         onMouseMove={handleMouseMove}
+        onClick={handleClick}
       >
         {imageUrl ? (
           <Image
@@ -123,6 +135,24 @@ function MaterialCard({
         <span className="text-xl absolute bottom-2 right-2 font-minecraft">
           {formatQuantity(material.quantity, showStacks)}
         </span>
+
+        <div
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 size-50 pointer-events-none"
+          style={{
+            filter:
+              resolvedTheme === "dark" ? "invert(1) brightness(1)" : "none",
+          }}
+        >
+          <DotLottieReact
+            src="/animations/black explosion.lottie"
+            style={{ width: "100%", height: "100%" }}
+            loop={false}
+            autoplay={false}
+            dotLottieRefCallback={(dotLottie) => {
+              dotLottieRef.current = dotLottie;
+            }}
+          />
+        </div>
       </div>
       {isHovered && (
         <div
@@ -136,22 +166,26 @@ function MaterialCard({
   );
 }
 
-export function MaterialGrid({
-  materials,
-  handleShare,
-  shareSuccess,
-}: {
-  materials: Material[];
-  handleShare: () => void;
-  shareSuccess: boolean;
-}) {
+export function SavedGrid({ build }: { build: Build }) {
   const [showStacks, setShowStacks] = React.useState(false);
 
-  if (!materials || materials.length === 0) {
+  const [shareSuccess, setShareSuccess] = React.useState(false);
+
+  const handleShare = () => {
+    const url = createBuildUrl(build);
+    const fullUrl = window.location.origin + url;
+
+    navigator.clipboard.writeText(fullUrl).then(() => {
+      setShareSuccess(true);
+      setTimeout(() => setShareSuccess(false), 2000);
+    });
+  };
+
+  if (!build.materials || build.materials.length === 0) {
     return null;
   }
 
-  const totalQuantity = materials.reduce(
+  const totalQuantity = build.materials.reduce(
     (sum, material) => sum + material.quantity,
     0
   );
@@ -160,7 +194,7 @@ export function MaterialGrid({
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">
-          Your Material List ({materials.length} types, {totalQuantity} total)
+          {build.name} ({build.materials.length} types, {totalQuantity} total)
         </h2>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={handleShare}>
@@ -177,7 +211,7 @@ export function MaterialGrid({
         </div>
       </div>
       <div className="flex flex-wrap">
-        {materials.map((material, index) => (
+        {build.materials.map((material, index) => (
           <MaterialCard
             key={`${material}-${index}`}
             material={material}

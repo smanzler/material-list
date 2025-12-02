@@ -56,7 +56,7 @@ function BuildCard({ build }: { build: Build }) {
       </div>
       <div className="flex gap-2">
         <Button type="button" variant="outline" size="sm" asChild>
-          <Link href={createBuildUrl(build)}>View</Link>
+          <Link href={`/builds/saved/${build.id}`}>View</Link>
         </Button>
         <Button
           type="button"
